@@ -8,3 +8,4 @@ Als je in je terminal "go run CPUenRAM.go zet wordt de applicatie gestart.
 Vervolgens geeft de terminal aan dat je een locatie voor de logbestand moet geven en de frequentie voor hoesnel er gemeten moet worden.
 De code maakt vervolgens een .txt bestand en daar worden de gegevens in gezet.
 
+(P.S) De appicatie werkt het best op Ubuntu aangezien de code op windows geen CPU kan aflezen.
