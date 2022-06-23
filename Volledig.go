@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/mackerelio/go-osstat/cpu"
+	"github.com/mackerelio/go-osstat/memory"
 )
 
 var total, cpuUserPerc, cpuSysPerc, cpuIdlePerc float64
+var memTotalMB, memUsedMB, memFreeMB int
 var location string
 
-func cpu_shit() {
+func CPU() {
 	cpu, err := cpu.Get() //hier worden de cpu gegevens opgehaald
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
@@ -25,15 +28,27 @@ func cpu_shit() {
 	cpuIdlePerc = float64(cpu.Idle) / total * 100
 }
 
-func write_to_file() {
+func Memory() {
+	memory, err := memory.Get() //Hier wordt de ramgebruik ophehaald
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		return
+	}
+	memTotalMB = int(memory.Total) / 1048576
+	memUsedMB = int(memory.Used) / 1048576
+	memFreeMB = int(memory.Free) / 1048576
+}
 
+func write_to_file() {
 	cpuUserAfgerond := fmt.Sprintf("%.2f", cpuUserPerc) //hier geef ik aan dat er maar 2 decimalen achter de komma komen
 	cpuSysAfgerond := fmt.Sprintf("%.2f", cpuSysPerc)
 	cpuIdleAfgerond := fmt.Sprintf("%.2f", cpuIdlePerc)
 
-	//de rest dat nog moet :)
+	memTotalMBstring := strconv.Itoa(memTotalMB)
+	memUsedMBstring := strconv.Itoa(memUsedMB)
+	memFreeMBstring := strconv.Itoa(memFreeMB)
 
-	file, err := os.OpenFile(location, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644) //hier wordt een logbestand aangemaakt, //handle de error :)
+	file, err := os.OpenFile(location, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644) //hier wordt een logbestand aangemaakt als die nog niet bestaat, als deze al bestaat wordt er in de bestaande log geschreven
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -42,19 +57,19 @@ func write_to_file() {
 	file.WriteString("cpu user: " + cpuUserAfgerond + " %\n")   //hier wordt de cpu geprint
 	file.WriteString("cpu system: " + cpuSysAfgerond + " %\n")
 	file.WriteString("cpu idle: " + cpuIdleAfgerond + " %\n\n")
+
+	file.WriteString("memory total: " + memTotalMBstring + " Mb\n") //hier wordt de ram geprint
+	file.WriteString("memory used: " + memUsedMBstring + " Mb\n")
+	file.WriteString("memory free: " + memFreeMBstring + " Mb\n\n")
 }
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
-
-	//vraag de user om een locatie, mag jij doen e.g: ./log.txt :)
-	//todo: primt bericht zoals vul de log locatie in...
-	fmt.Println("Vul hier de log locatie in:")
+	fmt.Println("Vul hier de log locatie in: (Voorbeeld = ./Log.txt)")
 	scanner.Scan()
 	location = scanner.Text()
-	//vraag de user om een tijd:) met bericht zoals vul een interval zoals 5s, 30m in
-	//boven de scanner.scan
-	fmt.Println("Vul hier de frequentie in:")
+
+	fmt.Println("Vul hier de frequentie in: (Voorbeeld = 5s)")
 	scanner.Scan()
 	tijd, err := time.ParseDuration(scanner.Text())
 	if err != nil {
@@ -62,8 +77,9 @@ func main() {
 	}
 
 	for {
-		time.Sleep(tijd) //maak dit ook configureerbaar door te vragen
-		cpu_shit()
+		time.Sleep(tijd)
+		CPU()
+		Memory()
 		write_to_file()
 	}
 }
